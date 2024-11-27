@@ -1,9 +1,9 @@
 // src/api/userService.js
 
-import axios from 'axios';
+import axios from "axios";
 
 // Base URL from environment variables or default to localhost
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Create an axios instance for user operations
 const axiosInstance = axios.create({
@@ -13,7 +13,7 @@ const axiosInstance = axios.create({
 // Add a request interceptor to include the auth token in headers
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem("adminToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -29,10 +29,10 @@ axiosInstance.interceptors.request.use(
  */
 export const getUsers = async (params = {}) => {
   try {
-    const response = await axiosInstance.get('/users/admin/users', { params });
+    const response = await axiosInstance.get("/users/admin/users", { params });
     return response.data; // Expected to return { success: true, count: n, data: [...users], totalPages: x }
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to fetch users.';
+    throw error.response?.data?.message || "Failed to fetch users.";
   }
 };
 
@@ -46,7 +46,7 @@ export const getUserById = async (id) => {
     const response = await axiosInstance.get(`/users/admin/users/${id}`);
     return response.data; // Expected to return { success: true, data: {...user} }
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to fetch user details.';
+    throw error.response?.data?.message || "Failed to fetch user details.";
   }
 };
 
@@ -57,14 +57,14 @@ export const getUserById = async (id) => {
  */
 export const createUser = async (userData) => {
   try {
-    const response = await axiosInstance.post('/users/admin/users', userData, {
+    const response = await axiosInstance.post("/users/admin/users", userData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
     return response.data; // Expected to return { success: true, data: {...user} }
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to create user.';
+    throw error.response?.data?.message || "Failed to create user.";
   }
 };
 
@@ -76,14 +76,18 @@ export const createUser = async (userData) => {
  */
 export const updateUser = async (id, userData) => {
   try {
-    const response = await axiosInstance.put(`/users/admin/users/${id}`, userData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await axiosInstance.put(
+      `/users/admin/users/${id}`,
+      userData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
     return response.data; // Expected to return { success: true, data: {...user} }
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to update user.';
+    throw error.response?.data?.message || "Failed to update user.";
   }
 };
 
@@ -97,7 +101,7 @@ export const deleteUser = async (id) => {
     const response = await axiosInstance.delete(`/users/admin/users/${id}`);
     return response.data; // Expected to return { success: true, message: 'User deactivated successfully' }
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to deactivate user.';
+    throw error.response?.data?.message || "Failed to deactivate user.";
   }
 };
 
@@ -109,10 +113,13 @@ export const deleteUser = async (id) => {
  */
 export const resetUserPassword = async (id, newPassword) => {
   try {
-    const response = await axiosInstance.post(`/users/admin/users/${id}/reset-password`, { password: newPassword });
+    const response = await axiosInstance.post(
+      `/users/admin/users/${id}/reset-password`,
+      { password: newPassword }
+    );
     return response.data; // Expected to return { success: true, message: 'User password reset successfully' }
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to reset password.';
+    throw error.response?.data?.message || "Failed to reset password.";
   }
 };
 
@@ -123,10 +130,12 @@ export const resetUserPassword = async (id, newPassword) => {
  */
 export const searchUsers = async (searchParams) => {
   try {
-    const response = await axiosInstance.get('/users/admin/users/search', { params: searchParams });
+    const response = await axiosInstance.get("/users/admin/users/search", {
+      params: searchParams,
+    });
     return response.data; // Expected to return { success: true, users: [...], totalPages: n }
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to search users.';
+    throw error.response?.data?.message || "Failed to search users.";
   }
 };
 
@@ -135,15 +144,15 @@ export const searchUsers = async (searchParams) => {
  * @param {String} format - Desired export format ('csv' or 'excel')
  * @returns {Blob} - Blob data for file download
  */
-export const exportUsers = async (format = 'csv') => {
+export const exportUsers = async (format = "csv") => {
   try {
-    const response = await axiosInstance.get('/users/admin/users/export', {
-      responseType: 'blob', // Important for handling file downloads
+    const response = await axiosInstance.get("/users/admin/users/export", {
+      responseType: "blob", // Important for handling file downloads
       params: { format },
     });
     return response.data; // Blob data for file download
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to export users.';
+    throw error.response?.data?.message || "Failed to export users.";
   }
 };
 
@@ -155,24 +164,32 @@ export const exportUsers = async (format = 'csv') => {
  */
 export const changeUserStatus = async (id, isActive) => {
   try {
-    const response = await axiosInstance.patch(`/users/admin/users/${id}/status`, { isActive });
+    const response = await axiosInstance.patch(
+      `/users/admin/users/${id}/status`,
+      { isActive }
+    );
     return response.data; // Expected to return { success: true, user: {...user} }
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to change user status.';
+    throw error.response?.data?.message || "Failed to change user status.";
   }
 };
 
 /**
  * Perform bulk updates on multiple users
- * @param {Array} updates - Array of update objects, each containing { id, fields }
+ * @param {Object} bulkData - Object containing userIds and actions
+ * @param {Array} bulkData.userIds - Array of user IDs
+ * @param {Array} bulkData.actions - Array of action objects
  * @returns {Object} - Response data confirming bulk update
  */
-export const bulkUpdateUsers = async (updates) => {
+export const bulkUpdateUsers = async ({ userIds, actions }) => {
   try {
-    const response = await axiosInstance.post('/users/admin/users/bulk-update', { updates });
+    const response = await axiosInstance.post(
+      "/users/admin/users/bulk-update",
+      { userIds, actions }
+    );
     return response.data; // Expected to return { success: true, message: 'Bulk update successful', result: {...} }
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to perform bulk update.';
+    throw error.response?.data?.message || "Failed to perform bulk update.";
   }
 };
 
@@ -183,10 +200,12 @@ export const bulkUpdateUsers = async (updates) => {
  */
 export const getUserActivity = async (id) => {
   try {
-    const response = await axiosInstance.get(`/users/admin/users/${id}/activity`);
+    const response = await axiosInstance.get(
+      `/users/admin/users/${id}/activity`
+    );
     return response.data; // Expected to return { success: true, activities: [...] }
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to fetch user activity.';
+    throw error.response?.data?.message || "Failed to fetch user activity.";
   }
 };
 
@@ -196,10 +215,12 @@ export const getUserActivity = async (id) => {
  */
 export const countUsersByRole = async () => {
   try {
-    const response = await axiosInstance.get('/users/admin/users/count-by-role');
+    const response = await axiosInstance.get(
+      "/users/admin/users/count-by-role"
+    );
     return response.data; // Expected to return { success: true, counts: [{ role: 'admin', count: 5 }, ...] }
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to count users by role.';
+    throw error.response?.data?.message || "Failed to count users by role.";
   }
 };
 
@@ -209,10 +230,10 @@ export const countUsersByRole = async () => {
  */
 export const getUserCount = async () => {
   try {
-    const response = await axiosInstance.get('/users/admin/users/count');
+    const response = await axiosInstance.get("/users/admin/users/count");
     return response.data; // Expected to return { success: true, totalUsers: n }
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to get total user count.';
+    throw error.response?.data?.message || "Failed to get total user count.";
   }
 };
 
@@ -226,22 +247,54 @@ export const getUserAuditLogs = async (id) => {
     const response = await axiosInstance.get(`/users/admin/users/${id}/audit`);
     return response.data; // Expected to return { success: true, auditLogs: [...] }
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to fetch audit logs.';
+    throw error.response?.data?.message || "Failed to fetch audit logs.";
   }
 };
 
 /**
- * Send an email invitation to register a new user with a predefined role
- * @param {String} email - Email of the invited user
- * @param {String} role - Role to assign to the invited user
- * @returns {Object} - Response data confirming invitation
+ * Invite a new user by sending an invitation email
+ * @param {string} email - Email of the user to invite
+ * @param {string} role - Role to assign to the invited user
+ * @returns {Object} - Response data from the invitation API
  */
 export const inviteUser = async (email, role) => {
   try {
-    const response = await axiosInstance.post('/users/admin/users/invite', { email, role });
-    return response.data; // Expected to return { success: true, message: 'Invitation sent successfully' }
+    const response = await axiosInstance.post("/users/admin/users/invite", {
+      email,
+      role,
+    });
+    return response.data; // Expected to return { success: true, message: 'Invitation sent successfully.' }
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to invite user.';
+    console.error("inviteUser error:", error); // Log for debugging purposes
+    const errorMessage = error.response?.data?.message || "Failed to invite user.";
+    throw new Error(errorMessage);
+  }
+};
+
+/**
+ * Signup a user via invitation token
+ * @param {string} token - Invitation token
+ * @param {string} name - Name of the user
+ * @param {string} password - User's password
+ * @param {string} confirmPassword - Confirmation of the password
+ * @returns {Object} - Response data from the signup API
+ */
+export const signupViaInvite = async (
+  token,
+  name,
+  password,
+  confirmPassword
+) => {
+  try {
+    const response = await axiosInstance.post("/users/signup", {
+      token,
+      name,
+      password,
+      confirmPassword,
+    });
+    return response.data; // Expected to return user data and token
+  } catch (error) {
+    throw error.response?.data?.message || "Failed to sign up.";
   }
 };
 
@@ -259,7 +312,8 @@ export default {
   bulkUpdateUsers,
   getUserActivity,
   countUsersByRole,
-  getUserCount, // Ensure this function is included
+  getUserCount,
   getUserAuditLogs,
   inviteUser,
+  signupViaInvite,
 };

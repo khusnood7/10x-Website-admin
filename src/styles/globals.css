@@ -193,3 +193,43 @@
   margin: -80px;
   rotate: -20deg;
 }
+
+
+/* Styling for the checkbox container */
+input[type="checkbox"] {
+  display: grid;
+  place-content: center;
+  appearance: none; /* Removes default styling */
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid #e27e10; /* Indigo color */
+  border-radius: 0.25rem; /* Optional for rounded corners */
+  outline: none;
+  cursor: pointer;
+  background-color: #fff; /* Default background */
+  transition: background-color 120ms ease-in-out, border-color 120ms ease-in-out;
+}
+
+input[type="checkbox"]::before {
+  content: "";
+  width: 0.65em;
+  height: 0.65em;
+  transform: scale(0);
+  background-color: #e27e10; /* Indigo color */
+  transition: transform 120ms ease-in-out;
+  box-shadow: inset 1em 1em var(--form-control-color, #e27e10);
+  border-radius: 0.25rem; /* Optional for rounded tick */
+}
+
+input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+input[type="checkbox"]:hover {
+  border-color: #e27e10; /* Darker indigo for hover effect */
+}
+
+input[type="checkbox"]:focus {
+  border-color: #e27e10; /* Focus state color */
+  box-shadow: 0 0 0 2px #c7d2fe; /* Light blue outline for focus */
+}

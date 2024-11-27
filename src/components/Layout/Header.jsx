@@ -66,10 +66,10 @@ const Header = ({ toggleSidebar }) => {
           <img
             src={adminProfilePic || '/assets/default-avatar.png'} // Replace with actual default avatar path
             alt="Profile"
-            className="w-10 h-10 rounded-full object-cover border-2 border-white"
+            className="w-10 h-10 rounded-full object-cover border-2 border-white bg-white"
           />
           {/* Welcome Message */}
-          <div className="text-sm  dark:text-gray-200 text-white uppercase font-bold">
+          <div className="text-md  dark:text-gray-200 text-white uppercase font-bold quantico-bold-italic">
             Welcome, {adminName}
           </div>
         </div>

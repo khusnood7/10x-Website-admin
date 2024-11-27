@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Button from '../Common/Button';
 import { USER_ROLES } from '../../utils/constants';
+import { FiAlertCircle } from 'react-icons/fi';
 
 const InviteUser = ({ onInvite }) => {
   const [email, setEmail] = useState('');
@@ -22,21 +23,39 @@ const InviteUser = ({ onInvite }) => {
       return;
     }
 
+    // Optional: Prevent inviting normal users
+    if (role === USER_ROLES.USER) {
+      setError("Sorry, we can't invite a normal user from this form.");
+      return;
+    }
+
     try {
       await onInvite(email, role);
       setSuccess('Invitation sent successfully.');
       setEmail('');
       setRole(USER_ROLES.USER);
+      // toast.success('Invitation sent successfully.'); // Already handled in context
     } catch (err) {
-      setError(err);
+      setError(err.message || 'Failed to invite user.');
+      // toast.error(`Invitation failed: ${err}`); // Already handled in context
     }
   };
 
   return (
-    <div className="max-w-md mx-auto p-4 bg-white shadow-md rounded-md">
-      <h3 className="text-xl font-semibold mb-4">Invite New User</h3>
-      {error && <div className="text-red-500 mb-2">{error}</div>}
-      {success && <div className="text-green-500 mb-2">{success}</div>}
+    <div className="max-w-md mx-auto p-6 bg-white shadow-md rounded-md">
+      <h3 className="text-2xl font-semibold mb-4">Invite New User</h3>
+      {error && (
+        <div className="flex items-center text-red-500 mb-4">
+          <FiAlertCircle className="mr-2" />
+          <span>{error}</span>
+        </div>
+      )}
+      {success && (
+        <div className="flex items-center text-green-500 mb-4">
+          <FiAlertCircle className="mr-2" />
+          <span>{success}</span>
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Email Field */}
         <div>
@@ -60,15 +79,16 @@ const InviteUser = ({ onInvite }) => {
             className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
           >
             <option value="">Select Role</option>
-            <option value={USER_ROLES.SUPER_ADMIN}>Super Admin</option>
-            <option value={USER_ROLES.MARKETING_MANAGER}>Marketing Manager</option>
-            <option value={USER_ROLES.PRODUCT_MANAGER}>Product Manager</option>
-            <option value={USER_ROLES.USER}>User</option>
+            {Object.values(USER_ROLES).map((roleValue) => (
+              <option key={roleValue} value={roleValue}>
+                {roleValue.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+              </option>
+            ))}
           </select>
         </div>
         {/* Submit Button */}
         <div>
-          <Button type="submit" className="w-full">
+          <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md">
             Send Invitation
           </Button>
         </div>

@@ -81,6 +81,39 @@ export const UserProvider = ({ children }) => {
     }
   }, []);
 
+
+  /**
+   * Signup a user via invitation token
+   * @param {string} token - Invitation token
+   * @param {string} name - Name of the user
+   * @param {string} password - User's password
+   * @param {string} confirmPassword - Confirmation of the password
+   */
+  const signupViaInvite = useCallback(async (token, name, password, confirmPassword) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await userService.signupViaInvite(token, name, password, confirmPassword);
+      if (data.success) {
+        toast.success('Account created successfully.');
+        // Optionally, log the user in by storing the token
+        localStorage.setItem('authToken', data.token);
+        // Redirect to dashboard or desired page
+        // This should ideally be handled in the component using this function
+      } else {
+        setError(data.message || 'Signup failed.');
+        toast.error(data.message || 'Signup failed.');
+      }
+    } catch (err) {
+      console.error('signupViaInvite error:', err); // Debugging
+      setError(err);
+      toast.error(err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   /**
    * Create a new user
    * @param {FormData} userData - FormData object containing user details and optional profile picture
@@ -100,9 +133,14 @@ export const UserProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('createUser error:', err); // Debugging
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-        toast.error(err.response.data.message);
+      if (err.errors) {
+        // Display specific validation errors
+        err.errors.forEach((validationError) => {
+          const field = Object.keys(validationError)[0];
+          const message = validationError[field];
+          toast.error(`${field}: ${message}`);
+        });
+        setError(err.message || 'Invalid input.');
       } else {
         setError(err.message || 'An error occurred while creating the user.');
         toast.error(err.message || 'An error occurred while creating the user.');
@@ -214,13 +252,15 @@ export const UserProvider = ({ children }) => {
 
   /**
    * Perform bulk updates on multiple users
-   * @param {Array} updates - Array of update objects, each containing { id, fields }
+   * @param {Object} bulkData - Object containing userIds and actions
+   * @param {Array} bulkData.userIds - Array of user IDs
+   * @param {Array} bulkData.actions - Array of action objects
    */
-  const bulkUpdateUsers = useCallback(async (updates) => {
+  const bulkUpdateUsers = useCallback(async ({ userIds, actions }) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await userService.bulkUpdateUsers(updates);
+      const data = await userService.bulkUpdateUsers({ userIds, actions });
       console.log('bulkUpdateUsers response:', data); // Debugging
       if (data.success) {
         // Optionally, refetch users or update the local state based on the response
@@ -245,10 +285,12 @@ export const UserProvider = ({ children }) => {
     }
   }, [fetchUsers]);
 
+
+
   /**
-   * Invite a new user via email with a predefined role
-   * @param {String} email - Email of the invited user
-   * @param {String} role - Role to assign to the invited user
+   * Invite a new user by sending an invitation email
+   * @param {string} email - Email of the user to invite
+   * @param {string} role - Role to assign to the invited user
    */
   const inviteUser = useCallback(async (email, role) => {
     setLoading(true);
@@ -264,13 +306,8 @@ export const UserProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('inviteUser error:', err); // Debugging
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-        toast.error(err.response.data.message);
-      } else {
-        setError(err.message || 'An error occurred while inviting the user.');
-        toast.error(err.message || 'An error occurred while inviting the user.');
-      }
+      setError(err);
+      toast.error(err);
       throw err;
     } finally {
       setLoading(false);
@@ -305,9 +342,9 @@ export const UserProvider = ({ children }) => {
           }
           setError(errorMessage);
           toast.error(errorMessage);
-        } else if (contentType === 'text/csv') {
+        } else if (contentType === 'text/csv' || contentType === 'application/vnd.ms-excel') {
           // Create a Blob from the binary data
-          const blob = new Blob([blobData], { type: 'text/csv' });
+          const blob = new Blob([blobData], { type: contentType });
           const url = window.URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;

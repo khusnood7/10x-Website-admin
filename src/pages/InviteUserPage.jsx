@@ -2,8 +2,7 @@
 
 import React from 'react';
 import InviteUser from '../components/Users/InviteUser';
-import useUsers from '../hooks/useUsers';
-import toast from 'react-hot-toast';
+import { useUsers } from '../contexts/UserContext';
 
 const InviteUserPage = () => {
   const { inviteUser } = useUsers();
@@ -12,9 +11,9 @@ const InviteUserPage = () => {
   const handleInvite = async (email, role) => {
     try {
       await inviteUser(email, role);
-      toast.success('Invitation sent successfully.');
+      // toast.success('Invitation sent successfully.'); // Already handled in context
     } catch (err) {
-      toast.error(`Invitation failed: ${err}`);
+      // toast.error(`Invitation failed: ${err}`); // Already handled in context
     }
   };
 

@@ -1,5 +1,6 @@
 // src/utils/constants.js
 
+
 export const USER_ROLES = {
   SUPER_ADMIN: 'super-admin',                         // Has full access to all resources and functionalities
   PRODUCT_MANAGER: 'product-manager',                 // Manages products, categories, inventory
