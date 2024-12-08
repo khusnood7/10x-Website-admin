@@ -1,6 +1,6 @@
 // src/contexts/TagContext.jsx
 
-import React, { createContext, useState, useCallback } from 'react';
+import React, { createContext, useState, useCallback, useEffect } from 'react';
 import tagService from '../api/tagService';
 import toast from 'react-hot-toast';
 import PropTypes from 'prop-types';
@@ -21,7 +21,7 @@ export const TagProvider = ({ children }) => {
   /**
    * Fetch all tags with optional filters
    * @param {Object} params - Query parameters (page, limit, search, isActive, sortField, sortOrder)
-   * @returns {Object} - List of tags and count
+   * @returns {Promise<Object>} - Response data
    */
   const fetchTags = useCallback(async (params = {}) => {
     setLoading(true);
@@ -40,10 +40,15 @@ export const TagProvider = ({ children }) => {
     }
   }, []);
 
+  // Fetch tags on mount
+  useEffect(() => {
+    fetchTags();
+  }, [fetchTags]);
+
   /**
    * Create a new tag
    * @param {Object} tagData - Data for the new tag
-   * @returns {Object} - Created tag data
+   * @returns {Promise<Object>} - Created tag data
    */
   const createNewTag = useCallback(async (tagData) => {
     setLoading(true);
@@ -66,7 +71,7 @@ export const TagProvider = ({ children }) => {
   /**
    * Get a tag by ID
    * @param {String} id - Tag ID
-   * @returns {Object} - Tag details
+   * @returns {Promise<Object>} - Tag details
    */
   const getTag = useCallback(async (id) => {
     setLoading(true);
@@ -87,7 +92,7 @@ export const TagProvider = ({ children }) => {
    * Update a tag by ID
    * @param {String} id - Tag ID
    * @param {Object} updateData - Data to update
-   * @returns {Object} - Updated tag data
+   * @returns {Promise<Object>} - Updated tag data
    */
   const updateExistingTag = useCallback(async (id, updateData) => {
     setLoading(true);

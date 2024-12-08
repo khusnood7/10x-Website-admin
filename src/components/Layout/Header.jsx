@@ -70,7 +70,7 @@ const Header = ({ toggleSidebar }) => {
           />
           {/* Welcome Message */}
           <div className="text-md  dark:text-gray-200 text-white uppercase font-bold quantico-bold-italic">
-            Welcome, {adminName}
+            HI, {adminName}
           </div>
         </div>
 

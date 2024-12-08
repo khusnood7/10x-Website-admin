@@ -7,9 +7,16 @@ import {
   FiUsers,
   FiSettings,
   FiBarChart2,
-  FiClipboard, // Import FiClipboard for Categories
+  FiClipboard,
   FiMessageCircle,
-  FiLogOut, // Corrected to FiLogOut for Logout button
+  FiLogOut,
+  FiShoppingBag,
+  FiShoppingCart, // Imported FiShoppingCart for Orders
+  FiSmile,
+  FiBook,
+  FiGift,
+  FiHelpCircle,
+  FiTag,
 } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -19,21 +26,14 @@ const Sidebar = ({ isCollapsed }) => {
   const navLinks = [
     { name: "Dashboard", path: "/dashboard", icon: <FiHome /> },
     { name: "Users", path: "/users", icon: <FiUsers /> },
-    { name: "Categories", path: "/admin/categories", icon: <FiClipboard /> }, // Added Categories link with FiClipboard icon
-    { name: "Contacts", path: "/contacts", icon: <FiMessageCircle /> },
-    { name: "Reviews", path: "/admin/reviews", icon: <i class="fa-solid fa-face-smile"></i> },
-
-    {
-      name: "Coupons",
-      path: "/coupons",
-      icon: <i class="fa-solid fa-closed-captioning"></i>,
-    },
-    { name: "FAQs", path: "/faqs", icon: <i class="fa-solid fa-question"></i> },
-    {
-      name: "Tags",
-      path: "/admin/tags",
-      icon: <i class="fa-solid fa-tag"></i>,
-    },
+    { name: "Products", path: "/admin/products", icon: <FiShoppingBag /> },
+    { name: "Orders", path: "/admin/orders", icon: <FiShoppingCart /> }, // **Added Orders Link**
+    { name: "Categories", path: "/admin/categories", icon: <FiClipboard /> },
+    { name: "Reviews", path: "/admin/reviews", icon: <FiSmile /> },
+    { name: "Blogs", path: "/admin/blogs", icon: <FiBook /> },
+    { name: "Coupons", path: "/coupons", icon: <FiGift /> },
+    { name: "FAQs", path: "/faqs", icon: <FiHelpCircle /> },
+    { name: "Tags", path: "/admin/tags", icon: <FiTag /> },
     { name: "Analytics", path: "/analytics", icon: <FiBarChart2 /> },
     { name: "Settings", path: "/settings", icon: <FiSettings /> },
   ];
@@ -68,7 +68,7 @@ const Sidebar = ({ isCollapsed }) => {
             onClick={logout}
             className="flex items-center space-x-3 px-4 py-2 rounded-md text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 w-full"
           >
-            <FiLogOut className="text-lg" /> {/* Corrected Logout icon */}
+            <FiLogOut className="text-lg" /> {/* Logout icon */}
             {!isCollapsed && <span className="text-md">Logout</span>}
           </button>
         </div>

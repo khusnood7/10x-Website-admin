@@ -1,8 +1,9 @@
 // src/contexts/CategoryContext.jsx
 
-import React, { createContext, useState, useCallback } from 'react';
+import React, { createContext, useState, useCallback, useEffect } from 'react';
 import categoryService from '../api/categoryService';
 import toast from 'react-hot-toast';
+import PropTypes from 'prop-types';
 
 // Create the CategoryContext
 const CategoryContext = createContext();
@@ -41,6 +42,11 @@ export const CategoryProvider = ({ children }) => {
       setLoading(false);
     }
   }, []);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   /**
    * Get a single category by ID
@@ -150,6 +156,10 @@ export const CategoryProvider = ({ children }) => {
       {children}
     </CategoryContext.Provider>
   );
+};
+
+CategoryProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 export default CategoryContext;
