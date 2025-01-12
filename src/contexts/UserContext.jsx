@@ -35,13 +35,8 @@ export const UserProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('fetchUsers error:', err); // Debugging
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-        toast.error(err.response.data.message);
-      } else {
-        setError(err.message || 'An error occurred while fetching users.');
-        toast.error(err.message || 'An error occurred while fetching users.');
-      }
+      setError(err);
+      toast.error(err);
       return { success: false };
     } finally {
       setLoading(false);
@@ -68,19 +63,13 @@ export const UserProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('getUserById error:', err); // Debugging
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-        toast.error(err.response.data.message);
-      } else {
-        setError(err.message || 'An error occurred while fetching user details.');
-        toast.error(err.message || 'An error occurred while fetching user details.');
-      }
+      setError(err);
+      toast.error(err);
       throw err;
     } finally {
       setLoading(false);
     }
   }, []);
-
 
   /**
    * Signup a user via invitation token
@@ -133,18 +122,9 @@ export const UserProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('createUser error:', err); // Debugging
-      if (err.errors) {
-        // Display specific validation errors
-        err.errors.forEach((validationError) => {
-          const field = Object.keys(validationError)[0];
-          const message = validationError[field];
-          toast.error(`${field}: ${message}`);
-        });
-        setError(err.message || 'Invalid input.');
-      } else {
-        setError(err.message || 'An error occurred while creating the user.');
-        toast.error(err.message || 'An error occurred while creating the user.');
-      }
+      // Since userService throws a string, err is a string
+      setError(err);
+      toast.error(err);
       throw err;
     } finally {
       setLoading(false);
@@ -173,13 +153,8 @@ export const UserProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('updateUser error:', err); // Debugging
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-        toast.error(err.response.data.message);
-      } else {
-        setError(err.message || 'An error occurred while updating the user.');
-        toast.error(err.message || 'An error occurred while updating the user.');
-      }
+      setError(err);
+      toast.error(err);
       throw err;
     } finally {
       setLoading(false);
@@ -187,7 +162,7 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   /**
-   * Permanently delete a user
+   * Soft delete or deactivate a user
    * @param {String} id - User ID
    */
   const deleteUser = useCallback(async (id) => {
@@ -205,13 +180,8 @@ export const UserProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('deleteUser error:', err); // Debugging
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-        toast.error(err.response.data.message);
-      } else {
-        setError(err.message || 'An error occurred while deleting the user.');
-        toast.error(err.message || 'An error occurred while deleting the user.');
-      }
+      setError(err);
+      toast.error(err);
       throw err;
     } finally {
       setLoading(false);
@@ -237,13 +207,8 @@ export const UserProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('resetUserPassword error:', err); // Debugging
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-        toast.error(err.response.data.message);
-      } else {
-        setError(err.message || 'An error occurred while resetting the password.');
-        toast.error(err.message || 'An error occurred while resetting the password.');
-      }
+      setError(err);
+      toast.error(err);
       throw err;
     } finally {
       setLoading(false);
@@ -272,20 +237,13 @@ export const UserProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('bulkUpdateUsers error:', err); // Debugging
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-        toast.error(err.response.data.message);
-      } else {
-        setError(err.message || 'An error occurred during bulk update.');
-        toast.error(err.message || 'An error occurred during bulk update.');
-      }
+      setError(err);
+      toast.error(err);
       throw err;
     } finally {
       setLoading(false);
     }
   }, [fetchUsers]);
-
-
 
   /**
    * Invite a new user by sending an invitation email
@@ -317,12 +275,13 @@ export const UserProvider = ({ children }) => {
   /**
    * Export user data in specified format (CSV/Excel)
    * @param {String} format - Desired export format ('csv' or 'excel')
+   * @param {Array} userIds - (Optional) Array of user IDs to export
    */
-  const exportUsers = useCallback(async (format = 'csv') => {
+  const exportUsers = useCallback(async (format = 'csv', userIds = []) => {
     setLoading(true);
     setError(null);
     try {
-      const blobData = await userService.exportUsers(format);
+      const blobData = await userService.exportUsers(format, userIds);
       console.log('exportUsers response:', blobData); // Debugging
 
       if (blobData) {
@@ -365,13 +324,8 @@ export const UserProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('exportUsers error:', err); // Debugging
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-        toast.error(err.response.data.message);
-      } else {
-        setError(err.message || 'An error occurred while exporting users.');
-        toast.error(err.message || 'An error occurred while exporting users.');
-      }
+      setError(err);
+      toast.error(err);
       throw err;
     } finally {
       setLoading(false);
@@ -403,13 +357,8 @@ export const UserProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('changeUserStatus error:', err); // Debugging
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-        toast.error(err.response.data.message);
-      } else {
-        setError(err.message || 'An error occurred while changing user status.');
-        toast.error(err.message || 'An error occurred while changing user status.');
-      }
+      setError(err);
+      toast.error(err);
       throw err;
     } finally {
       setLoading(false);
@@ -436,13 +385,8 @@ export const UserProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('getUserActivity error:', err); // Debugging
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-        toast.error(err.response.data.message);
-      } else {
-        setError(err.message || 'An error occurred while fetching user activity.');
-        toast.error(err.message || 'An error occurred while fetching user activity.');
-      }
+      setError(err);
+      toast.error(err);
       throw err;
     } finally {
       setLoading(false);
@@ -469,13 +413,8 @@ export const UserProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('getUserAuditLogs error:', err); // Debugging
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-        toast.error(err.response.data.message);
-      } else {
-        setError(err.message || 'An error occurred while fetching audit logs.');
-        toast.error(err.message || 'An error occurred while fetching audit logs.');
-      }
+      setError(err);
+      toast.error(err);
       throw err;
     } finally {
       setLoading(false);
@@ -501,13 +440,8 @@ export const UserProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('countUsersByRole error:', err); // Debugging
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-        toast.error(err.response.data.message);
-      } else {
-        setError(err.message || 'An error occurred while counting users by role.');
-        toast.error(err.message || 'An error occurred while counting users by role.');
-      }
+      setError(err);
+      toast.error(err);
       throw err;
     } finally {
       setLoading(false);
@@ -522,27 +456,82 @@ export const UserProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await userService.getUserCount();
-      console.log('getTotalUserCount response:', data); // Debugging
-      if (data.success) {
-        return data.totalUsers; // Assuming data.totalUsers is the total user count
-      } else {
-        setError(data.message || 'Failed to get total user count.');
-        toast.error(data.message || 'Failed to get total user count.');
-        return 0;
-      }
+      const count = await userService.getUserCount();
+      console.log('getTotalUserCount response:', count); // Debugging
+      return count; // Correctly return the totalUsers count
     } catch (err) {
       console.error('getTotalUserCount error:', err); // Debugging
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-        toast.error(err.response.data.message);
-      } else {
-        setError(err.message || 'An error occurred while getting total user count.');
-        toast.error(err.message || 'An error occurred while getting total user count.');
-      }
-      throw err;
+      setError(err);
+      toast.error(err);
+      return 0; // Return a fallback value
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Get metrics for a specific user
+   * @param {String} id - User ID
+   * @returns {Object} - Metrics data
+   */
+  const getUserMetrics = useCallback(async (id) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await userService.getUserMetrics(id);
+      if (data.success) {
+        return data.metrics; // Assuming data.metrics contains productPurchasedCount and loginFrequency
+      } else {
+        setError(data.message || 'Failed to fetch user metrics.');
+        toast.error(data.message || 'Failed to fetch user metrics.');
+        return {
+          productPurchasedCount: 0,
+          loginFrequency: 0,
+        };
+      }
+    } catch (err) {
+      console.error('getUserMetrics error:', err); // Debugging
+      setError(err);
+      toast.error(err);
+      return {
+        productPurchasedCount: 0,
+        loginFrequency: 0,
+      };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Get count of new users
+   * @param {Number} [days=30] - Number of days to consider for new users
+   * @returns {Number} - Count of new users
+   */
+  const getNewUsersCount = useCallback(async (days = 30) => {
+    try {
+      const count = await userService.getNewUsersCount(days);
+      console.log('New Users Count:', count); // Debugging
+      return count;
+    } catch (err) {
+      console.error('getNewUsersCount error:', err); // Debugging
+      toast.error(`Failed to fetch new users count: ${err}`);
+      return 0; // Return a fallback value
+    }
+  }, []);
+
+  /**
+   * Get count of returning users
+   * @returns {Number} - Count of returning users
+   */
+  const getReturningUsersCount = useCallback(async () => {
+    try {
+      const count = await userService.getReturningUsersCount();
+      console.log('Returning Users Count:', count); // Debugging
+      return count;
+    } catch (err) {
+      console.error('getReturningUsersCount error:', err); // Debugging
+      toast.error(`Failed to fetch returning users count: ${err}`);
+      return 0; // Return a fallback value
     }
   }, []);
 
@@ -554,6 +543,7 @@ export const UserProvider = ({ children }) => {
         error,
         fetchUsers,
         getUserById,
+        signupViaInvite,
         createUser,
         updateUser,
         deleteUser,
@@ -566,6 +556,9 @@ export const UserProvider = ({ children }) => {
         getUserAuditLogs,
         countUsersByRole,
         getTotalUserCount,
+        getUserMetrics,
+        getNewUsersCount,
+        getReturningUsersCount,
       }}
     >
       {children}

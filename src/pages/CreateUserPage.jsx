@@ -18,10 +18,10 @@ const CreateUserPage = () => {
   const handleSubmit = async (formData) => {
     try {
       await createUser(formData); // Call the createUser function with form data
-      toast.success('User created successfully!'); // Show success notification
+      toast.success('User created successfully!');
       navigate('/users'); // Redirect to the user list page
     } catch (error) {
-      // Error handling is managed in the UserContext and toast notifications
+      toast.error(`Error creating user: ${error}`);
       console.error('Error creating user:', error);
       // Additional error handling can be implemented here if needed
     }
@@ -29,16 +29,13 @@ const CreateUserPage = () => {
 
   return (
     <div className="p-6">
-      {/* Optional: Back to Users Button */}
-      <div className="mb-4">
-        <Button onClick={() => navigate('/users')} className="bg-gray-500 hover:bg-gray-600">
-          Back to Users
+      <div className="flex items-center mb-4">
+        <Button onClick={() => navigate(-1)} className="mr-4 bg-gray-500 hover:bg-gray-600">
+          <i className="fa-solid fa-arrow-left mr-2"></i> Back to Users
         </Button>
+        <h1 className="text-3xl font-bold">Create New User</h1>
       </div>
-
-      {/* User Creation Form */}
       <div className="max-w-lg mx-auto bg-white shadow-md rounded-md p-6">
-        <h1 className="text-2xl font-bold mb-6">Create New User</h1>
         <UserForm onSubmit={handleSubmit} />
       </div>
     </div>

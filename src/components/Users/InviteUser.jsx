@@ -2,98 +2,95 @@
 
 import React, { useState } from 'react';
 import Button from '../Common/Button';
-import { USER_ROLES } from '../../utils/constants';
-import { FiAlertCircle } from 'react-icons/fi';
+import { useFormik } from 'formik';
+import { inviteUserValidationSchema } from '../../utils/validation';
+import toast from 'react-hot-toast';
 
 const InviteUser = ({ onInvite }) => {
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState(USER_ROLES.USER);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-
-    // Basic validation
-    if (!email || !role) {
-      setError('Please provide both email and role.');
-      return;
-    }
-
-    // Optional: Prevent inviting normal users
-    if (role === USER_ROLES.USER) {
-      setError("Sorry, we can't invite a normal user from this form.");
-      return;
-    }
-
-    try {
-      await onInvite(email, role);
-      setSuccess('Invitation sent successfully.');
-      setEmail('');
-      setRole(USER_ROLES.USER);
-      // toast.success('Invitation sent successfully.'); // Already handled in context
-    } catch (err) {
-      setError(err.message || 'Failed to invite user.');
-      // toast.error(`Invitation failed: ${err}`); // Already handled in context
-    }
-  };
+  // Initialize Formik for form handling and validation
+  const formik = useFormik({
+    initialValues: {
+      email: '',
+      role: '',
+    },
+    validationSchema: inviteUserValidationSchema,
+    onSubmit: async (values, { resetForm }) => {
+      setLoading(true);
+      try {
+        await onInvite(values.email, values.role);
+        resetForm();
+      } catch (error) {
+        // Error handling is managed in the parent component with toasts
+      } finally {
+        setLoading(false);
+      }
+    },
+  });
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white shadow-md rounded-md">
-      <h3 className="text-2xl font-semibold mb-4">Invite New User</h3>
-      {error && (
-        <div className="flex items-center text-red-500 mb-4">
-          <FiAlertCircle className="mr-2" />
-          <span>{error}</span>
-        </div>
-      )}
-      {success && (
-        <div className="flex items-center text-green-500 mb-4">
-          <FiAlertCircle className="mr-2" />
-          <span>{success}</span>
-        </div>
-      )}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Email Field */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="user@example.com"
-          />
-        </div>
-        {/* Role Field */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Role</label>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            required
-            className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">Select Role</option>
-            {Object.values(USER_ROLES).map((roleValue) => (
-              <option key={roleValue} value={roleValue}>
-                {roleValue.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-              </option>
-            ))}
-          </select>
-        </div>
-        {/* Submit Button */}
-        <div>
-          <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md">
-            Send Invitation
-          </Button>
-        </div>
-      </form>
-    </div>
+    <form onSubmit={formik.handleSubmit} className="space-y-4 max-w-md">
+      {/* Email Field */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Email</label>
+        <input
+          type="email"
+          name="email"
+          value={formik.values.email}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          required
+          className={`mt-1 block w-full px-3 py-2 border ${
+            formik.touched.email && formik.errors.email
+              ? 'border-red-500'
+              : 'border-gray-300'
+          } rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+          placeholder="john.doe@example.com"
+        />
+        {formik.touched.email && formik.errors.email && (
+          <p className="text-red-500 text-sm mt-1">{formik.errors.email}</p>
+        )}
+      </div>
+
+      {/* Role Field */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Role</label>
+        <select
+          name="role"
+          value={formik.values.role}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          required
+          className={`mt-1 block w-full px-3 py-2 bg-white border ${
+            formik.touched.role && formik.errors.role
+              ? 'border-red-500'
+              : 'border-gray-300'
+          } rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+        >
+          <option value="">-- Select Role --</option>
+          {Object.values(USER_ROLES).map((role) => (
+            <option key={role} value={role}>
+              {role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+            </option>
+          ))}
+        </select>
+        {formik.touched.role && formik.errors.role && (
+          <p className="text-red-500 text-sm mt-1">{formik.errors.role}</p>
+        )}
+      </div>
+
+      {/* Submit Button */}
+      <div>
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md"
+        >
+          {loading ? 'Sending...' : 'Send Invitation'}
+        </Button>
+      </div>
+    </form>
   );
 };
 

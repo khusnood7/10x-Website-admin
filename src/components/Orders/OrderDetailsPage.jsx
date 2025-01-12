@@ -1,28 +1,42 @@
 // src/components/Orders/OrderDetailsPage.jsx
 
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useOrders from '../../hooks/useOrders';
 import Modal from '../Common/Modal';
 import Button from '../Common/Button';
 import toast from 'react-hot-toast';
 import Select from 'react-select';
-import ErrorBoundary from '../Common/ErrorBoundary'; // Ensure you have this component
-import AuthContext from '../../contexts/AuthContext'; // Assuming you have an AuthContext
+import ErrorBoundary from '../Common/ErrorBoundary';
+import RefundForm from './RefundForm'; // Ensure RefundForm.jsx exists
+import UpdateTrackingForm from './UpdateTrackingForm'; // Ensure UpdateTrackingForm.jsx exists
+import ReturnForm from './ReturnForm'; // Ensure ReturnForm.jsx exists
 
 const OrderDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { authToken } = useContext(AuthContext); // Retrieve the auth token from context
-  const { fetchOrderById, changeOrderStatus, cancelOrderById } = useOrders();
-  const [order, setOrder] = useState(null);
+  const {
+    fetchOrderById,
+    changeOrderStatus,
+    cancelOrderById,
+    updateTracking,
+    processRefund,
+    requestReturn,
+  } = useOrders();
+
+  const [order, setOrder] = useState(null); // Initialize as null
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Modal states
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+
   const [newStatus, setNewStatus] = useState('');
 
-  // Define allowed transitions
   const allowedTransitions = {
     pending: ['processing', 'shipped', 'delivered', 'cancelled'],
     processing: ['shipped', 'delivered', 'cancelled'],
@@ -35,7 +49,8 @@ const OrderDetailsPage = () => {
   useEffect(() => {
     const getOrder = async () => {
       try {
-        const fetchedOrder = await fetchOrderById(id, authToken);
+        const fetchedOrder = await fetchOrderById(id);
+        console.log('Fetched Order:', fetchedOrder); // Debug log
         setOrder(fetchedOrder);
       } catch (err) {
         setError(err.message || 'Failed to fetch order details.');
@@ -45,14 +60,14 @@ const OrderDetailsPage = () => {
     };
 
     getOrder();
-  }, [fetchOrderById, id, authToken]);
+  }, [fetchOrderById, id]);
 
-  // Early returns to prevent accessing order when it's null
   if (loading) return <p>Loading order details...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
   if (!order) return <p>Order not found.</p>;
 
-  // Now order exists, safe to access order.status
+  console.log('Current Order State:', order); // Debug log
+
   const nextAllowedStatuses = allowedTransitions[order.status] || [];
 
   const statusOptions = nextAllowedStatuses.map((status) => ({
@@ -60,12 +75,15 @@ const OrderDetailsPage = () => {
     label: capitalize(status),
   }));
 
-  if (nextAllowedStatuses.length === 0) {
-    // No transitions allowed
+  if (nextAllowedStatuses.length === 0 && order.status) {
     statusOptions.push({ value: order.status, label: capitalize(order.status), isDisabled: true });
   }
 
   function capitalize(word) {
+    if (typeof word !== 'string') {
+      console.warn(`capitalize: expected a string but received ${typeof word}`);
+      return '';
+    }
     return word.charAt(0).toUpperCase() + word.slice(1);
   }
 
@@ -81,7 +99,7 @@ const OrderDetailsPage = () => {
     }
 
     try {
-      await changeOrderStatus(order._id, newStatus, authToken);
+      await changeOrderStatus(order._id, newStatus);
       setOrder((prevOrder) => ({ ...prevOrder, status: newStatus }));
       setIsUpdateModalOpen(false);
       toast.success('Order status updated successfully.');
@@ -101,12 +119,71 @@ const OrderDetailsPage = () => {
     }
 
     try {
-      await cancelOrderById(order._id, reason, authToken);
-      setOrder((prevOrder) => ({ ...prevOrder, status: 'cancelled' }));
+      await cancelOrderById(order._id, reason);
+      setOrder((prevOrder) => ({ ...prevOrder, status: 'cancelled', cancellationReason: reason }));
       setIsCancelModalOpen(false);
       toast.success('Order cancelled successfully.');
     } catch (err) {
       toast.error(err.message || 'Failed to cancel order.');
+    }
+  };
+
+  const openTrackingModal = () => {
+    setIsTrackingModalOpen(true);
+  };
+
+  const handleUpdateTracking = async (trackingDetails) => {
+    try {
+      await updateTracking(order._id, trackingDetails);
+      setOrder((prevOrder) => ({
+        ...prevOrder,
+        trackingDetails: trackingDetails,
+      }));
+      setIsTrackingModalOpen(false);
+      toast.success('Tracking details updated successfully.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update tracking details.');
+    }
+  };
+
+  const openRefundModal = () => {
+    setIsRefundModalOpen(true);
+  };
+
+  const handleProcessRefund = async (refundData) => {
+    if (!refundData.amount || !refundData.reason) {
+      toast.error('Please provide both amount and reason for refund.');
+      return;
+    }
+
+    try {
+      await processRefund(order._id, refundData.amount, refundData.reason);
+      // Optionally, refetch the order to get updated refund details
+      const updatedOrder = await fetchOrderById(id);
+      setOrder(updatedOrder);
+      setIsRefundModalOpen(false);
+      toast.success('Refund processed successfully.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to process refund.');
+    }
+  };
+
+  const openReturnModal = () => {
+    setIsReturnModalOpen(true);
+  };
+
+  const handleRequestReturn = async (returnData) => {
+    if (!returnData.items || returnData.items.length === 0 || !returnData.reason) {
+      toast.error('Please provide items and reason for return.');
+      return;
+    }
+
+    try {
+      await requestReturn(order._id, returnData.items, returnData.reason);
+      setIsReturnModalOpen(false);
+      toast.success('Return request submitted successfully.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to submit return request.');
     }
   };
 
@@ -120,12 +197,36 @@ const OrderDetailsPage = () => {
         <div className="bg-white shadow-md rounded-lg p-6">
           {/* Order Details Display */}
           <h2 className="text-2xl font-semibold mb-4">Order Details</h2>
-          <p><strong>Order Number:</strong> {order.orderNumber}</p>
-          <p><strong>Status:</strong> {capitalize(order.status)}</p>
-          <p><strong>Total Amount:</strong> ${order.totalAmount.toFixed(2)}</p>
-          <p><strong>Payment Method:</strong> {order.paymentMethod}</p>
+          <p><strong>Order Number:</strong> {order.orderNumber || 'N/A'}</p>
+          <p><strong>Status:</strong> {capitalize(order.status || 'N/A')}</p>
+          <p><strong>Total Amount:</strong> ${order.totalAmount?.toFixed(2) || '0.00'}</p>
+          <p><strong>Payment Method:</strong> {order.paymentMethod || 'N/A'}</p>
+          <p><strong>Payment Status:</strong> {capitalize(order.paymentStatus || 'N/A')}</p>
+          <p><strong>Order Created At:</strong> {formatDate(order.createdAt)}</p>
+          <p><strong>Last Updated At:</strong> {formatDate(order.updatedAt)}</p>
+          {order.shippingDate && (
+            <p><strong>Shipping Date:</strong> {formatDate(order.shippingDate)}</p>
+          )}
+          {order.deliveryDate && (
+            <p><strong>Delivery Date:</strong> {formatDate(order.deliveryDate)}</p>
+          )}
+          {order.trackingDetails && (
+            <div>
+              <p><strong>Tracking ID:</strong> {order.trackingDetails.trackingId || 'N/A'}</p>
+              <p><strong>Carrier:</strong> {capitalize(order.trackingDetails.carrier || 'N/A')}</p>
+              {order.trackingDetails.trackingId && order.trackingDetails.carrier && (
+                <p><strong>Tracking URL:</strong> <a href={`https://www.${order.trackingDetails.carrier.toLowerCase()}.com/track/${order.trackingDetails.trackingId}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Track Shipment</a></p>
+              )}
+            </div>
+          )}
           <p><strong>Shipping Address:</strong> {formatAddress(order.shippingAddress)}</p>
           <p><strong>Billing Address:</strong> {formatAddress(order.billingAddress)}</p>
+          {order.cancellationReason && (
+            <p><strong>Cancellation Reason:</strong> {order.cancellationReason}</p>
+          )}
+          {order.refundedAmount !== undefined && (
+            <p><strong>Refunded Amount:</strong> ${order.refundedAmount.toFixed(2)}</p>
+          )}
 
           {/* Items Table */}
           <table className="min-w-full mt-4">
@@ -139,17 +240,23 @@ const OrderDetailsPage = () => {
               </tr>
             </thead>
             <tbody>
-              {order.items.map((item, index) => (
-                <tr key={index}>
-                  <td className="border px-4 py-2">
-                    <img src={item.product.thumbnail || 'https://via.placeholder.com/50'} alt={item.product.title} width="50" height="50" />
-                  </td>
-                  <td className="border px-4 py-2">{item.product.title}</td>
-                  <td className="border px-4 py-2">{item.quantity}</td>
-                  <td className="border px-4 py-2">${item.price.toFixed(2)}</td>
-                  <td className="border px-4 py-2">${(item.price * item.quantity).toFixed(2)}</td>
+              {Array.isArray(order.items) && order.items.length > 0 ? (
+                order.items.map((item, index) => (
+                  <tr key={index}>
+                    <td className="border px-4 py-2">
+                      <img src={item.product.thumbnail || 'https://via.placeholder.com/50'} alt={item.product.title} width="50" height="50" />
+                    </td>
+                    <td className="border px-4 py-2">{item.product.title || 'N/A'}</td>
+                    <td className="border px-4 py-2">{item.quantity || 0}</td>
+                    <td className="border px-4 py-2">${item.price?.toFixed(2) || '0.00'}</td>
+                    <td className="border px-4 py-2">${(item.price * item.quantity).toFixed(2) || '0.00'}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="text-center py-4">No items found.</td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
 
@@ -171,6 +278,30 @@ const OrderDetailsPage = () => {
                 Cancel Order
               </Button>
             )}
+            {['shipped', 'delivered'].includes(order.status) && (
+              <Button
+                onClick={openTrackingModal}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+              >
+                Update Tracking
+              </Button>
+            )}
+            {['delivered', 'returned'].includes(order.status) && (
+              <Button
+                onClick={openRefundModal}
+                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded"
+              >
+                Process Refund
+              </Button>
+            )}
+            {order.status === 'delivered' && (
+              <Button
+                onClick={openReturnModal}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded"
+              >
+                Request Return
+              </Button>
+            )}
           </div>
         </div>
 
@@ -179,7 +310,7 @@ const OrderDetailsPage = () => {
           <Modal
             isOpen={isUpdateModalOpen}
             onClose={() => setIsUpdateModalOpen(false)}
-            title={`Update Status for ${order.orderNumber}`}
+            title={`Update Status for ${order.orderNumber || 'Order'}`}
           >
             <div className="space-y-4">
               <Select
@@ -212,9 +343,42 @@ const OrderDetailsPage = () => {
           <Modal
             isOpen={isCancelModalOpen}
             onClose={() => setIsCancelModalOpen(false)}
-            title={`Cancel Order ${order.orderNumber}`}
+            title={`Cancel Order ${order.orderNumber || ''}`}
           >
             <CancelOrderForm onSubmit={handleCancelOrder} />
+          </Modal>
+        )}
+
+        {/* Update Tracking Modal */}
+        {isTrackingModalOpen && (
+          <Modal
+            isOpen={isTrackingModalOpen}
+            onClose={() => setIsTrackingModalOpen(false)}
+            title={`Update Tracking for ${order.orderNumber || 'Order'}`}
+          >
+            <UpdateTrackingForm onSubmit={handleUpdateTracking} />
+          </Modal>
+        )}
+
+        {/* Process Refund Modal */}
+        {isRefundModalOpen && (
+          <Modal
+            isOpen={isRefundModalOpen}
+            onClose={() => setIsRefundModalOpen(false)}
+            title={`Process Refund for ${order.orderNumber || 'Order'}`}
+          >
+            <RefundForm onSubmit={handleProcessRefund} />
+          </Modal>
+        )}
+
+        {/* Request Return Modal */}
+        {isReturnModalOpen && (
+          <Modal
+            isOpen={isReturnModalOpen}
+            onClose={() => setIsReturnModalOpen(false)}
+            title={`Request Return for ${order.orderNumber || 'Order'}`}
+          >
+            <ReturnForm onSubmit={handleRequestReturn} />
           </Modal>
         )}
       </div>
@@ -224,13 +388,24 @@ const OrderDetailsPage = () => {
 
 /**
  * Format Address Object into a String
- * @param {Object} address - Address object with keys {street, city, state, zip, country, _id}
+ * @param {Object} address - Address object with keys {street, city, state, zip, country}
  * @returns {string} - Formatted address string
  */
 const formatAddress = (address) => {
   if (!address) return 'N/A';
   const { street, city, state, zip, country } = address;
-  return `${street}, ${city}, ${state}, ${zip}, ${country}`;
+  return `${street || ''}, ${city || ''}, ${state || ''}, ${zip || ''}, ${country || ''}`.replace(/(^,)|,$/g, '').trim() || 'N/A';
+};
+
+/**
+ * Format Date
+ * @param {Date} date - Date object or string
+ * @returns {string} - Formatted date string
+ */
+const formatDate = (date) => {
+  if (!date) return 'N/A';
+  const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+  return new Date(date).toLocaleDateString(undefined, options);
 };
 
 /**
@@ -242,7 +417,11 @@ const CancelOrderForm = ({ onSubmit }) => {
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    onSubmit(reason);
+    if (!reason.trim()) {
+      toast.error('Reason cannot be empty.');
+      return;
+    }
+    onSubmit(reason.trim());
   };
 
   return (

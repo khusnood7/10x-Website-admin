@@ -5,6 +5,8 @@ import { Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
 import { useUsers } from '../contexts/UserContext'; // Corrected import path
 import toast from 'react-hot-toast';
+import { Card, Grid, Typography, CircularProgress, Button } from '@mui/material';
+import OrderMetrics from '../components/Orders/OrderMetrics'; // Importing OrderMetrics component
 
 const Dashboard = () => {
   const { countUsersByRole, getTotalUserCount, exportUsers } = useUsers(); // Ensure exportUsers is included
@@ -60,35 +62,53 @@ const Dashboard = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-      <button
+      <Typography variant="h4" gutterBottom>
+        Dashboard
+      </Typography>
+      <Button
         onClick={handleExport}
-        className="mb-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        variant="contained"
+        color="primary"
+        className="mb-6"
         disabled={loading}
       >
         {loading ? 'Exporting...' : 'Export Users'}
-      </button>
+      </Button>
       {loading ? (
-        <p>Loading dashboard data...</p>
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <CircularProgress />
+        </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Grid container spacing={3}>
             {/* Total Users Card */}
-            <div className="p-6 bg-white shadow-md rounded-md">
-              <h2 className="text-xl font-semibold mb-2">Total Users</h2>
-              <p className="text-4xl">{totalUsers}</p>
-            </div>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card style={{ padding: '20px' }}>
+                <Typography variant="h6">Total Users</Typography>
+                <Typography variant="h4">{totalUsers}</Typography>
+              </Card>
+            </Grid>
+
             {/* Users by Role Chart */}
-            <div className="p-6 bg-white shadow-md rounded-md">
-              <h2 className="text-xl font-semibold mb-4">Users by Role</h2>
-              {chartData.labels.length > 0 ? (
-                <Bar data={chartData} />
-              ) : (
-                <p>No data available to display the chart.</p>
-              )}
-            </div>
-          </div>
-          {/* Additional Analytics and Metrics can be added here */}
+            <Grid item xs={12} sm={6} md={3}>
+              <Card style={{ padding: '20px' }}>
+                <Typography variant="h6">Users by Role</Typography>
+                {chartData.labels.length > 0 ? (
+                  <Bar data={chartData} />
+                ) : (
+                  <Typography variant="body1">No data available.</Typography>
+                )}
+              </Card>
+            </Grid>
+
+            {/* Additional User Metrics Cards can be added here */}
+          </Grid>
+
+          {/* Divider or Spacer */}
+          <div style={{ margin: '40px 0' }} />
+
+          {/* Order Metrics Section */}
+          <OrderMetrics />
         </>
       )}
     </div>

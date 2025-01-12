@@ -4,16 +4,18 @@ import React, { useState } from 'react';
 import Modal from '../Common/Modal';
 import Button from '../Common/Button';
 import { useUsers } from '../../contexts/UserContext';
+import { USER_ROLES } from '../../utils/constants';
+import { toast } from 'react-hot-toast';
 
-const BulkUpdate = ({ selectedUserIds }) => {
-  const { bulkUpdateUsers } = useUsers(); // Destructure the bulkUpdateUsers function from context
+const BulkUpdate = ({ selectedUserIds, onBulkUpdate }) => {
+  const { exportUsers } = useUsers();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   // Action States
   const [newRole, setNewRole] = useState('');
   const [statusAction, setStatusAction] = useState(''); // 'activate' or 'deactivate'
   const [isDelete, setIsDelete] = useState(false);
-  
+
   // Confirmation State for Deletion
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
@@ -45,16 +47,16 @@ const BulkUpdate = ({ selectedUserIds }) => {
     }
 
     if (actions.length === 0) {
-      alert('Please select at least one action to perform.');
+      toast.error('Please select at least one action to perform.');
       return;
     }
 
     try {
-      await bulkUpdateUsers({
+      await onBulkUpdate({
         userIds: selectedUserIds,
         actions: actions,
       });
-      // Optionally, you can perform additional actions here like refetching users
+      // Optionally, perform additional actions like refetching users
     } catch (error) {
       console.error('bulkUpdateUsers error:', error);
       // The error is already handled in the context with toasts
@@ -80,14 +82,25 @@ const BulkUpdate = ({ selectedUserIds }) => {
     setIsConfirmOpen(false);
   };
 
+  // Handle Export Selected Users
+  const handleExportSelected = async () => {
+    try {
+      await exportUsers("csv", selectedUserIds);
+      toast.success("Selected users exported successfully.");
+      setIsModalOpen(false);
+    } catch (err) {
+      toast.error(`Export failed: ${err}`);
+    }
+  };
+
   return (
     <>
       <Button 
         onClick={() => setIsModalOpen(true)} 
         disabled={selectedUserIds.length === 0}
-        className="bg-gradient-to-r from-black to-[#0821D2] text-white px-4 py-2 md:px-6 md:py-3 shadow-lg quantico-bold-italic text-[16spx] hover:shadow-xl transition-shadow"
+        className="bg-gradient-to-r from-black to-[#0821D2] text-white px-4 py-3 md:px-6 md:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow"
       >
-        <i class="fa-brands fa-stack-overflow"></i> Bulk Update
+        <i className="fa-solid fa-layer-group"></i> Bulk Update
       </Button>
 
       {/* Bulk Update Modal */}
@@ -102,10 +115,11 @@ const BulkUpdate = ({ selectedUserIds }) => {
               className="mt-2 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="">-- Select New Role --</option>
-              <option value="SUPER_ADMIN">Super Admin</option>
-              <option value="MARKETING_MANAGER">Marketing Manager</option>
-              <option value="PRODUCT_MANAGER">Product Manager</option>
-              <option value="USER">User</option>
+              {Object.values(USER_ROLES).map((role) => (
+                <option key={role} value={role}>
+                  {role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -149,6 +163,17 @@ const BulkUpdate = ({ selectedUserIds }) => {
               />
               <span className="ml-2 text-red-600 font-medium">Delete Selected Users</span>
             </label>
+          </div>
+
+          {/* Export Selected Users */}
+          <div>
+            <h3 className="text-lg leading-6 font-medium text-gray-900">Export Selected Users</h3>
+            <Button
+              onClick={handleExportSelected}
+              className="mt-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
+            >
+              <i className="fa-solid fa-file-export"></i> Export
+            </Button>
           </div>
 
           {/* Action Buttons */}

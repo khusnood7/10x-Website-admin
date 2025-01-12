@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import {
   getAllProducts,
-  searchProducts,
+  searchProducts, // Ensure this is correctly imported
   getProductById,
   getProductBySlug,
   createProduct,
@@ -55,7 +55,12 @@ export const ProductProvider = ({ children }) => {
 
   // Fetch products whenever filters change
   useEffect(() => {
-    fetchProducts();
+    if (filters.search) {
+      // If there's a search query, use the search function
+      performSearch(filters.search);
+    } else {
+      fetchProducts();
+    }
     // eslint-disable-next-line
   }, [filters]);
 
@@ -101,20 +106,13 @@ export const ProductProvider = ({ children }) => {
     }
   }, [filters, logout]);
 
-  const search = useCallback(async (queryStr) => {
+  const performSearch = useCallback(async (queryStr) => {
     setLoading(true);
     try {
-      // If searching, reset other filters
-      const params = {
-        search: queryStr.trim(),
-        page: 1,
-        limit: filters.limit,
-      };
-
-      const data = await getAllProducts(params);
+      const data = await searchProducts(queryStr.trim());
       setProducts(data.products);
       setTotalPages(1);
-      setTotalProducts(data.total);
+      setTotalProducts(data.products.length);
       setFilters(prev => ({
         ...prev,
         search: queryStr.trim(),
@@ -133,7 +131,22 @@ export const ProductProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [filters.limit, logout]);
+  }, [logout]);
+
+  const search = useCallback(async (queryStr) => {
+    if (queryStr.trim() === "") {
+      // If search query is empty, fetch all products
+      setFilters(prev => ({
+        ...prev,
+        search: "",
+        category: "",
+        tags: [],
+        page: 1,
+      }));
+    } else {
+      performSearch(queryStr);
+    }
+  }, [performSearch]);
 
   const getProduct = useCallback(async (id) => {
     setLoading(true);

@@ -5,7 +5,7 @@ import Button from '../Common/Button';
 import { USER_ROLES } from '../../utils/constants';
 import { useFormik } from 'formik';
 import { userFormValidationSchema } from '../../utils/validation';
-import toast from 'react-hot-toast'; // Ensure toast is imported
+import toast from 'react-hot-toast';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 
 const UserForm = ({ initialData = {}, onSubmit }) => {
@@ -27,8 +27,8 @@ const UserForm = ({ initialData = {}, onSubmit }) => {
     },
     validationSchema: userFormValidationSchema(isEditMode), // Apply conditional validation
     onSubmit: async (values, { setSubmitting, resetForm }) => {
-      // Check if the selected role is "USER"
-      if (values.role === USER_ROLES.USER) {
+      // Check if the selected role is "USER" when creating a new user
+      if (!isEditMode && values.role === USER_ROLES.USER) {
         toast.error("Sorry, we can't create a normal user from the form.");
         setSubmitting(false); // Finish the submitting state
         return; // Abort the submission
@@ -64,7 +64,7 @@ const UserForm = ({ initialData = {}, onSubmit }) => {
   });
 
   return (
-    <form onSubmit={formik.handleSubmit} className="space-y-4">
+    <form onSubmit={formik.handleSubmit} className="space-y-6">
       {/* Name Field */}
       <div>
         <label className="block text-sm font-medium text-gray-700">Name</label>
@@ -219,7 +219,7 @@ const UserForm = ({ initialData = {}, onSubmit }) => {
         <Button
           type="submit"
           disabled={formik.isSubmitting}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md"
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-md"
         >
           {formik.isSubmitting
             ? isEditMode

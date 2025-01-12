@@ -13,7 +13,8 @@ const axiosInstance = axios.create({
 // Add a request interceptor to include the auth token in headers
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("adminToken");
+    const token =
+      localStorage.getItem("adminToken") || localStorage.getItem("authToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -142,13 +143,18 @@ export const searchUsers = async (searchParams) => {
 /**
  * Export user data in specified format (CSV/Excel)
  * @param {String} format - Desired export format ('csv' or 'excel')
+ * @param {Array} userIds - (Optional) Array of user IDs to export
  * @returns {Blob} - Blob data for file download
  */
-export const exportUsers = async (format = "csv") => {
+export const exportUsers = async (format = "csv", userIds = []) => {
   try {
+    const params = { format };
+    if (userIds.length > 0) {
+      params.userIds = userIds;
+    }
     const response = await axiosInstance.get("/users/admin/users/export", {
       responseType: "blob", // Important for handling file downloads
-      params: { format },
+      params,
     });
     return response.data; // Blob data for file download
   } catch (error) {
@@ -226,12 +232,12 @@ export const countUsersByRole = async () => {
 
 /**
  * Get total number of users
- * @returns {Object} - Response data containing total user count
+ * @returns {Number} - Total user count
  */
 export const getUserCount = async () => {
   try {
     const response = await axiosInstance.get("/users/admin/users/count");
-    return response.data; // Expected to return { success: true, totalUsers: n }
+    return response.data.totalUsers; // Correct field name
   } catch (error) {
     throw error.response?.data?.message || "Failed to get total user count.";
   }
@@ -266,7 +272,8 @@ export const inviteUser = async (email, role) => {
     return response.data; // Expected to return { success: true, message: 'Invitation sent successfully.' }
   } catch (error) {
     console.error("inviteUser error:", error); // Log for debugging purposes
-    const errorMessage = error.response?.data?.message || "Failed to invite user.";
+    const errorMessage =
+      error.response?.data?.message || "Failed to invite user.";
     throw new Error(errorMessage);
   }
 };
@@ -298,6 +305,51 @@ export const signupViaInvite = async (
   }
 };
 
+/**
+ * Get metrics for a specific user
+ * @param {String} id - User ID
+ * @returns {Object} - Metrics data
+ */
+export const getUserMetrics = async (id) => {
+  try {
+    const response = await axiosInstance.get(`/users/admin/users/${id}/metrics`);
+    return response.data.metrics; // Expected to return { metrics: { productPurchasedCount, loginFrequency, ... } }
+  } catch (error) {
+    throw error.response?.data?.message || "Failed to fetch user metrics.";
+  }
+};
+
+/**
+ * Get count of new users
+ * @param {Number} [days=30] - Number of days to consider for new users
+ * @returns {Number} - Count of new users
+ */
+export const getNewUsersCount = async (days = 30) => {
+  try {
+    const response = await axiosInstance.get("/users/admin/users/count-new", {
+      params: { days },
+    });
+    return response.data.newUsers; // Correct field name
+  } catch (error) {
+    throw error.response?.data?.message || "Failed to fetch new users count.";
+  }
+};
+
+/**
+ * Get count of returning users
+ * @returns {Number} - Count of returning users
+ */
+export const getReturningUsersCount = async () => {
+  try {
+    const response = await axiosInstance.get(
+      "/users/admin/users/count-returning"
+    );
+    return response.data.returningUsers; // Correct field name
+  } catch (error) {
+    throw error.response?.data?.message || "Failed to fetch returning users count.";
+  }
+};
+
 // Export all functions as default for easy import
 export default {
   getUsers,
@@ -316,4 +368,7 @@ export default {
   getUserAuditLogs,
   inviteUser,
   signupViaInvite,
+  getUserMetrics, // Ensure this is exported
+  getNewUsersCount,
+  getReturningUsersCount,
 };

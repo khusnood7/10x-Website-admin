@@ -5,7 +5,7 @@ import BulkUpdate from "../components/Users/BulkUpdate";
 import Pagination from "../components/Common/Pagination";
 import Button from "../components/Common/Button";
 import HighlightText from "../components/Users/HighlightText";
-import useUsers from "../hooks/useUsers";
+import { useUsers } from "../contexts/UserContext"; // Corrected import path
 import usePagination from "../hooks/usePagination";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,7 @@ import { USER_ROLES } from "../utils/constants";
 import { debounce } from "lodash";
 import EnlargedX from "../assets/EnlargedX.png"; // Example image for top banner
 import { Link } from "react-router-dom";
+import MetricCard from "../components/Users/MetricCard"; // New MetricCard component
 
 const UserListPage = () => {
   const {
@@ -24,6 +25,10 @@ const UserListPage = () => {
     exportUsers,
     deleteUser,
     changeUserStatus,
+    getTotalUserCount,
+    countUsersByRole,
+    getNewUsersCount,
+    getReturningUsersCount,
   } = useUsers();
 
   const [selectedUserIds, setSelectedUserIds] = useState([]);
@@ -32,7 +37,14 @@ const UserListPage = () => {
   const [sortField, setSortField] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
   const [totalPages, setTotalPages] = useState(1);
-  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false); // Add this state
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+  const [metrics, setMetrics] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    inactiveUsers: 0,
+    newUsers: 0,
+    returningUsers: 0,
+  });
 
   const { currentPage, setCurrentPage } = usePagination(totalPages, 1);
   const navigate = useNavigate();
@@ -52,15 +64,19 @@ const UserListPage = () => {
   );
 
   useEffect(() => {
-    const params = {
-      page: currentPage,
-      limit: 10,
-      query: searchQuery,
-      role: roleFilter,
-      sortField,
-      sortOrder,
+    const fetchData = async () => {
+      const params = {
+        page: currentPage,
+        limit: 10,
+        query: searchQuery,
+        role: roleFilter,
+        sortField,
+        sortOrder,
+      };
+      await debouncedFetchUsers(params);
+      await loadMetrics();
     };
-    debouncedFetchUsers(params);
+    fetchData();
 
     // Cleanup debounce on unmount
     return () => {
@@ -74,6 +90,35 @@ const UserListPage = () => {
     sortField,
     sortOrder,
   ]);
+
+  // Function to load metrics
+  const loadMetrics = async () => {
+    try {
+      const total = await getTotalUserCount();
+      const rolesCount = await countUsersByRole();
+      const newUsers = await getNewUsersCount();
+      const returningUsers = await getReturningUsersCount();
+
+      // Calculate active and inactive users based on roles
+      const activeRoles = Object.values(USER_ROLES).filter(
+        (role) => role !== "inactive"
+      );
+      const active = rolesCount
+        .filter((rc) => activeRoles.includes(rc.role))
+        .reduce((acc, rc) => acc + rc.count, 0);
+      const inactive = rolesCount.find((rc) => rc.role === "inactive")?.count || 0;
+
+      setMetrics({
+        totalUsers: total,
+        activeUsers: active,
+        inactiveUsers: inactive,
+        newUsers: newUsers,
+        returningUsers: returningUsers,
+      });
+    } catch (err) {
+      toast.error(`Error loading metrics: ${err}`);
+    }
+  };
 
   // Handle selection of individual user or all users
   const handleSelect = (id) => {
@@ -104,6 +149,7 @@ const UserListPage = () => {
         sortField,
         sortOrder,
       });
+      await loadMetrics();
     } catch (err) {
       toast.error(`Bulk update failed: ${err}`);
     }
@@ -134,6 +180,7 @@ const UserListPage = () => {
         sortField,
         sortOrder,
       });
+      await loadMetrics();
     } catch (err) {
       toast.error(`Failed to delete user: ${err}`);
     }
@@ -155,6 +202,7 @@ const UserListPage = () => {
         sortField,
         sortOrder,
       });
+      await loadMetrics();
     } catch (err) {
       toast.error(`Failed to change user status: ${err}`);
     }
@@ -204,6 +252,15 @@ const UserListPage = () => {
       {/* Main Content */}
       <div className="flex justify-center items-start py-10 md:py-20 bg-gray-100 min-h-screen">
         <div className="w-full px-4 md:px-6">
+          {/* Metrics Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            <MetricCard title="Total Users" value={metrics.totalUsers} />
+            <MetricCard title="Active Users" value={metrics.activeUsers} />
+            <MetricCard title="Inactive Users" value={metrics.inactiveUsers} />
+            <MetricCard title="New Users" value={metrics.newUsers} />
+            <MetricCard title="Returning Users" value={metrics.returningUsers} />
+          </div>
+
           {/* Header Section */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8">
             {/* Search, Filter, and Action Buttons */}
@@ -214,13 +271,13 @@ const UserListPage = () => {
                 placeholder="Search by name or email"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-[400px] bg-white border border-black text-black py-[12px] px-4 pr-8 shadow-[0_4px_10px_rgba(0,0,0,0.3)] quantico-bold-italic text-lg focus:outline-none"
+                className="w-full md:w-[400px] bg-white border border-black text-black py-3 px-4 pr-8 shadow-lg quantico-bold-italic text-lg focus:outline-none"
               />
 
               <div className="relative w-full md:w-auto">
                 <button
                   type="button"
-                  className="w-full md:w-60 bg-white border border-black text-black py-[12px] px-4 pr-8 shadow-[0_4px_10px_rgba(0,0,0,0.3)] quantico-bold-italic text-lg focus:outline-none"
+                  className="w-full md:w-60 bg-white border border-black text-black py-3 px-4 pr-8 shadow-lg quantico-bold-italic text-lg focus:outline-none"
                   onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
                 >
                   {roleFilter
@@ -233,7 +290,7 @@ const UserListPage = () => {
                   </span>
                 </button>
                 {isRoleDropdownOpen && (
-                  <div className="absolute z-10 w-full bg-white shadow-lg  border border-black mt-1">
+                  <div className="absolute z-10 w-full md:w-60 bg-white shadow-lg border border-black mt-1 rounded-md">
                     <ul>
                       <li
                         onClick={() => {
@@ -268,26 +325,26 @@ const UserListPage = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col md:flex-row md:space-x-2 space-y-2 md:space-y-0">
+              <div className="flex flex-col md:flex-row md:space-x-2 space-y-2 md:space-y-0 w-full md:w-auto">
                 <BulkUpdate
                   selectedUserIds={selectedUserIds}
                   onBulkUpdate={handleBulkUpdate}
                 />
                 <Button
                   onClick={handleExport}
-                  className="bg-gradient-to-r from-[#A467F7] to-[#4C03CB] text-white px-4 py-2 md:px-6 md:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow"
+                  className="bg-gradient-to-r from-[#A467F7] to-[#4C03CB] text-white px-4 py-3 md:px-6 md:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow"
                 >
-                  <i class="fa-solid fa-file-export"></i> Export Users
+                  <i className="fa-solid fa-file-export"></i> Export Users
                 </Button>
                 <Button
                   onClick={navigateToCreateUser}
-                  className="bg-gradient-to-r from-[#e27e10] to-[#f4ae3f] text-white px-4 py-2 md:px-6 md:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow"
+                  className="bg-gradient-to-r from-[#e27e10] to-[#f4ae3f] text-white px-4 py-3 md:px-6 md:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow"
                 >
-                  <i class="fa-solid fa-user-pen"></i> Create New User
+                  <i className="fa-solid fa-user-pen"></i> Create New User
                 </Button>
                 <Link to="/invite-user" className="">
-                  <Button className="bg-gradient-to-r from-[#A467F7] to-[#4C03CB] text-white px-4 py-2 md:px-6 md:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow">
-                    <i class="fa-solid fa-user-plus"></i>
+                  <Button className="bg-gradient-to-r from-[#A467F7] to-[#4C03CB] text-white px-4 py-3 md:px-6 md:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow">
+                    <i className="fa-solid fa-user-plus"></i> Invite User
                   </Button>
                 </Link>
               </div>
@@ -439,10 +496,10 @@ const UserListPage = () => {
                             </span>
                           </td>
                           <td className="py-4 px-6">
-                            <div className="flex space-x-2">
+                            <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
                               <Button
                                 onClick={() => navigate(`/users/${user._id}`)}
-                                className="bg-gradient-to-r from-black to-[#0821D2] text-white px-4 py-2 md:px-6 md:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow"
+                                className="bg-gradient-to-r from-black to-[#0821D2] text-white px-4 py-2 sm:px-6 sm:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow"
                               >
                                 View
                               </Button>
@@ -450,13 +507,13 @@ const UserListPage = () => {
                                 onClick={() =>
                                   navigate(`/users/edit/${user._id}`)
                                 }
-                                className="bg-gradient-to-r from-[#A467F7] to-[#4C03CB] text-white px-4 py-2 md:px-6 md:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow"
+                                className="bg-gradient-to-r from-[#A467F7] to-[#4C03CB] text-white px-4 py-2 sm:px-6 sm:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow"
                               >
                                 Edit
                               </Button>
                               <Button
                                 onClick={() => handleDelete(user._id)}
-                                className="bg-gradient-to-r from-[#e27e10] to-[#f4ae3f] text-white px-4 py-2 md:px-6 md:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow"
+                                className="bg-gradient-to-r from-[#e27e10] to-[#f4ae3f] text-white px-4 py-2 sm:px-6 sm:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow"
                               >
                                 Delete
                               </Button>
@@ -471,7 +528,7 @@ const UserListPage = () => {
                                   user.isActive
                                     ? "bg-gradient-to-r from-[#82e92d] to-[#53a609]"
                                     : "bg-gradient-to-r from-[#e27e10] to-[#f4ae3f]"
-                                } text-white px-4 py-2 md:px-6 md:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow`}
+                                } text-white px-4 py-2 sm:px-6 sm:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow`}
                               >
                                 {user.isActive ? "Deactivate" : "Activate"}
                               </Button>

@@ -9,7 +9,7 @@ import Button from '../Common/Button';
 import Select from 'react-select';
 import Pagination from '../Common/Pagination';
 import HighlightText from '../HighlightText';
-
+import BulkUpdateForm from './BulkUpdateForm'; // Ensure this import exists and points to the correct file
 
 const OrderListPage = () => {
   const navigate = useNavigate();
@@ -21,21 +21,17 @@ const OrderListPage = () => {
     fetchAllOrders,
     changeOrderStatus,
     cancelOrderById,
+    bulkUpdateOrders, // Now correctly provided by the context
   } = useOrders();
-
-  // State variables for filters
   const [statusFilter, setStatusFilter] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-  const [newStatus, setNewStatus] = useState('');
+  const [selectedOrders, setSelectedOrders] = useState([]);
+  const [isBulkUpdateModalOpen, setIsBulkUpdateModalOpen] = useState(false);
 
   const ordersPerPage = 10;
   const totalPages = Math.ceil(totalOrders / ordersPerPage);
 
-  // Fetch orders on component mount and when filters change
   useEffect(() => {
     const params = {
       page: currentPage,
@@ -44,17 +40,16 @@ const OrderListPage = () => {
       search: searchQuery || undefined,
       sortField: 'createdAt',
       sortOrder: 'desc',
+      // Removed token from params as it's accessed via context
     };
-    fetchAllOrders(params);
+    fetchAllOrders(params); // Pass the params without token
   }, [fetchAllOrders, currentPage, statusFilter, searchQuery]);
 
-  // Handler for search input with debounce
   const handleSearchChange = useCallback((e) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1);
   }, []);
 
-  // Status options for filtering
   const statusOptions = useMemo(
     () => [
       { value: 'pending', label: 'Pending' },
@@ -67,53 +62,56 @@ const OrderListPage = () => {
     []
   );
 
-  // Handle opening the update status modal
-  const openUpdateModal = useCallback((order) => {
-    setSelectedOrder(order);
-    setNewStatus(order.status);
-    setIsUpdateModalOpen(true);
-  }, []);
+  const toggleSelectAll = () => {
+    if (selectedOrders.length === orders.length) {
+      setSelectedOrders([]);
+    } else {
+      setSelectedOrders(orders.map(order => order._id));
+    }
+  };
 
-  // Handle updating the order status
-  const handleUpdateStatus = async () => {
-    if (!newStatus) {
+  const toggleSelectOrder = (orderId) => {
+    if (selectedOrders.includes(orderId)) {
+      setSelectedOrders(selectedOrders.filter(id => id !== orderId));
+    } else {
+      setSelectedOrders([...selectedOrders, orderId]);
+    }
+  };
+
+  const openBulkUpdateModal = () => {
+    if (selectedOrders.length === 0) {
+      toast.error('At least one order ID must be specified for bulk update.');
+      return;
+    }
+    setIsBulkUpdateModalOpen(true);
+  };
+
+  const handleBulkUpdate = async (bulkData) => {
+    if (!bulkData.newStatus) {
       toast.error('Please select a new status.');
       return;
     }
 
     try {
-      await changeOrderStatus(selectedOrder._id, newStatus);
-      setIsUpdateModalOpen(false);
-      setSelectedOrder(null);
+      await bulkUpdateOrders(selectedOrders, bulkData.newStatus); // Token is handled within the context
+      setSelectedOrders([]);
+      setIsBulkUpdateModalOpen(false);
+      toast.success('Bulk update successful.');
     } catch (err) {
-      // Error handling is done in context
+      toast.error(err.message || 'Bulk update failed.');
     }
   };
 
-  // Handle opening the cancel order modal
-  const openCancelModal = useCallback((order) => {
-    setSelectedOrder(order);
-    setIsCancelModalOpen(true);
-  }, []);
-
-  // Handle cancelling the order
-  const handleCancelOrder = async (reason) => {
-    if (!reason) {
-      toast.error('Please provide a reason for cancellation.');
-      return;
-    }
-
+  const handleCancelOrder = async (orderId, reason) => {
     try {
-      await cancelOrderById(selectedOrder._id, reason);
-      setIsCancelModalOpen(false);
-      setSelectedOrder(null);
+      await cancelOrderById(orderId, reason); // Token is handled within the context
+      toast.success(`Order ${orderId} cancelled successfully.`);
     } catch (err) {
-      // Error handling is done in context
+      toast.error(err.message || 'Failed to cancel order.');
     }
   };
 
-  // Table headers
-  const headers = ['Order Number', 'Customer', 'Status', 'Total', 'Created At', 'Actions'];
+  const headers = ['Select', 'Order Number', 'Customer', 'Status', 'Total', 'Created At', 'Actions'];
 
   return (
     <div className="p-6">
@@ -139,6 +137,16 @@ const OrderListPage = () => {
           onChange={handleSearchChange}
           className="w-full md:w-1/3 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
+
+        {/* Bulk Update Button */}
+        {selectedOrders.length > 0 && (
+          <Button
+            onClick={openBulkUpdateModal}
+            className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded"
+          >
+            Bulk Update
+          </Button>
+        )}
       </div>
 
       {/* Orders Table */}
@@ -146,16 +154,24 @@ const OrderListPage = () => {
         <p>Loading orders...</p>
       ) : error ? (
         <p className="text-red-500">{error}</p>
-      ) : orders.length === 0 ? (
+      ) : Array.isArray(orders) && orders.length === 0 ? (
         <p>No orders found.</p>
-      ) : (
+      ) : Array.isArray(orders) ? (
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
             <thead className="bg-gray-200">
               <tr>
-                {headers.map((header) => (
-                  <th key={header} className="py-3 px-6 text-left">
-                    {header}
+                {headers.map((header, index) => (
+                  <th key={index} className="py-3 px-6 text-left">
+                    {header === 'Select' ? (
+                      <input
+                        type="checkbox"
+                        checked={selectedOrders.length === orders.length && orders.length > 0}
+                        onChange={toggleSelectAll}
+                      />
+                    ) : (
+                      header
+                    )}
                   </th>
                 ))}
               </tr>
@@ -163,6 +179,13 @@ const OrderListPage = () => {
             <tbody>
               {orders.map((order) => (
                 <tr key={order._id} className="border-b hover:bg-gray-100">
+                  <td className="py-4 px-6">
+                    <input
+                      type="checkbox"
+                      checked={selectedOrders.includes(order._id)}
+                      onChange={() => toggleSelectOrder(order._id)}
+                    />
+                  </td>
                   <td className="py-4 px-6">
                     <HighlightText text={order.orderNumber} highlight={searchQuery} />
                   </td>
@@ -194,13 +217,13 @@ const OrderListPage = () => {
                       View
                     </Button>
                     <Button
-                      onClick={() => openUpdateModal(order)}
+                      onClick={() => openBulkUpdateModal()}
                       className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded"
                     >
                       Update Status
                     </Button>
                     <Button
-                      onClick={() => openCancelModal(order)}
+                      onClick={() => handleCancelOrder(order._id, 'Cancelled via bulk action')}
                       className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
                     >
                       Cancel
@@ -211,6 +234,8 @@ const OrderListPage = () => {
             </tbody>
           </table>
         </div>
+      ) : (
+        <p>Unexpected error occurred.</p>
       )}
 
       {/* Pagination */}
@@ -224,104 +249,17 @@ const OrderListPage = () => {
         </div>
       )}
 
-      {/* Update Status Modal */}
-      {isUpdateModalOpen && selectedOrder && (
+      {/* Bulk Update Modal */}
+      {isBulkUpdateModalOpen && (
         <Modal
-          isOpen={isUpdateModalOpen}
-          onClose={() => setIsUpdateModalOpen(false)}
-          title={`Update Status for ${selectedOrder.orderNumber}`}
+          isOpen={isBulkUpdateModalOpen}
+          onClose={() => setIsBulkUpdateModalOpen(false)}
+          title="Bulk Update Orders"
         >
-          <div className="space-y-4">
-            <Select
-              options={[
-                { value: 'pending', label: 'Pending' },
-                { value: 'processing', label: 'Processing' },
-                { value: 'shipped', label: 'Shipped' },
-                { value: 'delivered', label: 'Delivered' },
-                { value: 'cancelled', label: 'Cancelled' },
-                { value: 'refunded', label: 'Refunded' },
-              ]}
-              value={{ value: newStatus, label: newStatus.charAt(0).toUpperCase() + newStatus.slice(1) }}
-              onChange={(option) => setNewStatus(option.value)}
-              placeholder="Select new status"
-            />
-            <div className="flex justify-end space-x-2">
-              <Button
-                onClick={() => setIsUpdateModalOpen(false)}
-                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleUpdateStatus}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-              >
-                Update
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* Cancel Order Modal */}
-      {isCancelModalOpen && selectedOrder && (
-        <Modal
-          isOpen={isCancelModalOpen}
-          onClose={() => setIsCancelModalOpen(false)}
-          title={`Cancel Order ${selectedOrder.orderNumber}`}
-        >
-          <CancelOrderForm onSubmit={handleCancelOrder} />
+          <BulkUpdateForm onSubmit={handleBulkUpdate} />
         </Modal>
       )}
     </div>
-  );
-};
-
-/**
- * CancelOrderForm Component
- * A simple form to input cancellation reason.
- */
-const CancelOrderForm = ({ onSubmit }) => {
-  const [reason, setReason] = useState('');
-
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(reason);
-  };
-
-  return (
-    <form onSubmit={handleFormSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="reason" className="block text-sm font-medium text-gray-700">
-          Reason for Cancellation
-        </label>
-        <textarea
-          id="reason"
-          name="reason"
-          rows="4"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          required
-          className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          placeholder="Enter reason..."
-        ></textarea>
-      </div>
-      <div className="flex justify-end space-x-2">
-        <Button
-          type="button"
-          onClick={() => onSubmit(null)}
-          className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-        >
-          Confirm Cancellation
-        </Button>
-      </div>
-    </form>
   );
 };
 

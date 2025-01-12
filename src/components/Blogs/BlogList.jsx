@@ -390,12 +390,12 @@ const BlogList = () => {
                           </td>
                           <td className="py-4 px-6">
                             <div className="flex space-x-2">
-                              <Button
+                              {/* <Button
                                 onClick={() => handleView(blog._id)}
                                 className="bg-gradient-to-r from-black to-[#0821D2] text-white px-4 py-2 rounded-md quantico-bold-italic hover:shadow-lg transition-shadow flex items-center"
                               >
                                 <i className="fa-solid fa-eye mr-2"></i> View
-                              </Button>
+                              </Button> */}
                               <Button
                                 onClick={() => handleEdit(blog._id)}
                                 className="bg-gradient-to-r from-[#A467F7] to-[#4C03CB] text-white px-4 py-2 rounded-md quantico-bold-italic hover:shadow-lg transition-shadow flex items-center"

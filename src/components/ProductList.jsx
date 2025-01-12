@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useProducts } from "../contexts/ProductContext";
 import { Link } from "react-router-dom";
-import { FaEdit, FaTrash, FaSearch } from "react-icons/fa";
+import { FaEdit, FaTrash, FaSearch, FaPlus } from "react-icons/fa";
 import { ClipLoader } from "react-spinners";
 import Select from "react-select";
 import { toast } from "react-toastify";
@@ -11,6 +11,7 @@ import categoryService from "../api/categoryService"; // Import categoryService
 import tagService from "../api/tagService"; // Import tagService
 import { useAuth } from "../contexts/AuthContext"; // Import useAuth for handling unauthorized errors
 import EnlargedX from "../assets/EnlargedX.png";
+
 const ProductList = () => {
   const {
     products,
@@ -122,7 +123,6 @@ const ProductList = () => {
           <p className="text-white pt-sans-regular text-xl md:text-2xl mt-4 text-center md:text-left">
             Manage your products efficiently!
           </p>
-
         </div>
         <div className="right-col hidden md:flex w-full md:w-1/2 h-48 md:h-[400px] overflow-hidden items-center justify-center mt-6 md:mt-0">
           <img
@@ -134,7 +134,6 @@ const ProductList = () => {
       </div>
 
       <div className="p-6">
-
         {/* Search and Filters */}
         <div className="flex flex-col md:flex-row md:items-center md:space-x-8 space-y-4 md:space-y-0 mb-6">
           {/* Search */}
@@ -189,8 +188,10 @@ const ProductList = () => {
             />
           </div>
           <Link to={"/admin/products/create"}>
-          <button className="bg-gradient-to-r from-[#e27e10] to-[#f4ae3f] text-white px-4 py-2 md:px-6 md:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow w-40"><i class="fa-solid fa-plus"></i> Product</button>
-        </Link>
+            <button className="bg-gradient-to-r from-[#e27e10] to-[#f4ae3f] text-white px-4 py-2 md:px-6 md:py-3 shadow-lg quantico-bold-italic text-[16px] hover:shadow-xl transition-shadow w-40">
+              <FaPlus className="inline mr-2" /> Product
+            </button>
+          </Link>
         </div>
 
         {/* Products Table */}
@@ -232,6 +233,17 @@ const ProductList = () => {
                           ? `$${minPrice.toFixed(2)}`
                           : `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
 
+                      // Calculate min and max stock from variants
+                      const variantStocks = product.variants.map(
+                        (v) => v.stock
+                      );
+                      const minStock = Math.min(...variantStocks);
+                      const maxStock = Math.max(...variantStocks);
+                      const stockDisplay =
+                        minStock === maxStock
+                          ? `${minStock}`
+                          : `${minStock} - ${maxStock}`;
+
                       return (
                         <tr
                           key={product._id}
@@ -245,10 +257,13 @@ const ProductList = () => {
                           </td>
                           <td className="py-3 px-6">{priceDisplay}</td>
                           <td className="py-3 px-6">
-                            {product.stock !== undefined &&
-                            product.stock !== null
-                              ? product.stock
-                              : "N/A"}
+                            {product.variants && product.variants.length > 0 ? (
+                              <>
+                                {minStock} - {maxStock}
+                              </>
+                            ) : (
+                              "N/A"
+                            )}
                           </td>
                           <td className="py-3 px-6 flex space-x-4">
                             <Link
